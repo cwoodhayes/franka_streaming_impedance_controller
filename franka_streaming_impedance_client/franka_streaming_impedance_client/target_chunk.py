@@ -3,30 +3,24 @@ How a chunk of target EEF poses is put on the wire — as a command, and as a pi
 
 ``multidof_trajectory`` is the COMMAND format. The streaming Cartesian impedance controller takes a
 ``MultiDOFJointTrajectory``, where every waypoint has an absolute instant (``header.stamp +
-time_from_start``) that its interpolator splices on. Every producer — the policy client and the
-three on-arm probes — builds it through ``TargetChunkPublisher``, which is also what keeps
-``topic_name`` and ``get_subscription_count()`` available for "nobody is listening" errors.
+time_from_start``) that its interpolator splices on. Every producer builds it through
+``TargetChunkPublisher``, which is also what keeps ``topic_name`` and ``get_subscription_count()``
+available for "nobody is listening" errors.
 
-``pose_array`` is the PREVIEW format, and moves nothing. ``policy_client_node`` publishes every
-commanded chunk as an untimed ``PoseArray`` on a separate topic so the motion can be watched in
+Two fields the controller matches on, and rejects the chunk over:
+
+- ``header.frame_id`` must be the controller's ``base_frame``.
+- ``joint_names`` must be exactly ``[tcp_frame]`` — it names the commanded frame, not a joint.
+
+``pose_array`` is the PREVIEW format, and moves nothing. A producer can publish every commanded
+chunk as an untimed ``PoseArray`` on a separate topic so the motion can be watched in rviz or
 Foxglove whether or not execution is enabled. It lives here so both views of a chunk are built
-from one place, but nothing on the NUC subscribes to it.
+from one place.
 """
 
 from geometry_msgs.msg import Pose, PoseArray, Transform
 from rclpy.duration import Duration
 from trajectory_msgs.msg import MultiDOFJointTrajectory, MultiDOFJointTrajectoryPoint
-
-#: Where the streaming controller listens. Producers may override per-node, but this is the one
-#: topic the running stack is wired for.
-TARGET_POSES_TOPIC = '/polyumi/target_poses_traj'
-
-#: What must be running for a chunk to reach the arm, for "nobody is listening" errors. The
-#: controller can be loaded and still not subscribed, which is the confusing half.
-CONSUMER_HINT = (
-    'polyumi_cartesian_impedance_controller, ACTIVE — being loaded is not enough; '
-    'check `ros2 control list_controllers` on the NUC'
-)
 
 
 def pose_array(poses: list[Pose], *, frame_id: str, stamp) -> PoseArray:
@@ -91,14 +85,20 @@ class TargetChunkPublisher:
         *,
         frame_id: str,
         joint_name: str,
-        topic: str | None = None,
+        topic: str,
         qos: int = 10,
     ):
-        """Create the underlying publisher, defaulting to :data:`TARGET_POSES_TOPIC`."""
+        """
+        Create the underlying publisher.
+
+        `topic` is explicit and has no default: the controller's own default is node-relative
+        (``~/target_poses``, i.e. under the controller's name), which would resolve against the
+        PUBLISHING node here and silently address nothing.
+        """
         self._frame_id = frame_id
         self._joint_name = joint_name
         self._node = node
-        self._pub = node.create_publisher(MultiDOFJointTrajectory, topic or TARGET_POSES_TOPIC, qos)
+        self._pub = node.create_publisher(MultiDOFJointTrajectory, topic, qos)
 
     @property
     def topic_name(self) -> str:
