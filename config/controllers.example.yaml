@@ -35,8 +35,8 @@ cartesian_impedance_controller:
     #
     # Commanded force is stiffness * clipped_error, so translational_clip IS the force ceiling:
     # 2000 N/m * 0.01 m = 20 N. That pairing is the point — high stiffness tracks accurately while
-    # the clip keeps force bounded. A softer unbounded spring (UMI runs 750 N/m) instead leans on
-    # the environment with everything the arm has whenever the commanded pose is unreachable.
+    # the clip keeps force bounded. A softer unbounded spring instead leans on the environment
+    # with everything the arm has whenever the commanded pose is unreachable.
     #
     # Raising translational_clip raises the force ceiling proportionally. It is the single knob to
     # turn if the arm feels too weak against a surface — and see the collision note below, because
@@ -44,7 +44,7 @@ cartesian_impedance_controller:
     translational_stiffness: 2000.0
     translational_damping: 89.0       # ~critical for 2000 N/m: 2*sqrt(2000) = 89.4
     rotational_stiffness: 150.0
-    rotational_damping: 7.0           # deliberately under-damped; SERL and UMI both run rotation soft
+    rotational_damping: 7.0           # deliberately under-damped; rotation is normally run soft
     translational_clip: 0.01          # metres -> 20 N ceiling at the stiffness above
     rotational_clip: 0.05             # radians
 
@@ -61,8 +61,8 @@ cartesian_impedance_controller:
     joint1_nullspace_stiffness: 100.0
 
     # Ceiling on how fast the equilibrium point may travel, and so on how far it can lead the arm.
-    # UMI leaves both unbounded; bounding them matters here because that lead sets contact force
-    # alongside the clip.
+    # Leaving these unbounded is a valid choice; bounding them matters here because that lead sets
+    # contact force alongside the clip.
     max_pos_speed: 1.0                # m/s
     max_rot_speed: 3.14               # rad/s
 

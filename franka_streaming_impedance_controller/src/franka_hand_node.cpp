@@ -66,7 +66,7 @@ constexpr double kDivergenceWarn = 0.005;
 class FrankaHandNode : public rclcpp::Node {
  public:
   FrankaHandNode() : rclcpp::Node("fr3_gripper") {
-    const auto robot_ip = declare_parameter("robot_ip", std::string("192.168.51.20"));
+    const auto robot_ip = declare_parameter("robot_ip", std::string("172.16.0.2"));
     const auto target_topic = declare_parameter("target_topic", std::string("~/target_widths"));
     const auto state_topic = declare_parameter("state_topic", std::string("~/joint_states"));
     // 0.0 means "ask the hand", which is the right answer. Anything else is a backstop clamp.

@@ -47,12 +47,12 @@ def _stamp(seconds: float):
     return Time(sec=int(seconds), nanosec=int((seconds % 1) * 1e9))
 
 
-def test_publisher_uses_the_given_topic_and_message_type(node):
-    """The publisher addresses the topic it was given and builds the right message type."""
-    pub = TargetChunkPublisher(node, frame_id='fr3_link0', joint_name='fr3_hand_tcp', topic='/impedance/target_poses')
+def test_publisher_advertises_the_chunk_type(node):
+    """The controller only ever sees a MultiDOFJointTrajectory, so that is what gets advertised."""
+    TargetChunkPublisher(node, frame_id='fr3_link0', joint_name='fr3_hand_tcp', topic='/impedance/target_poses')
 
-    assert pub.topic_name == '/impedance/target_poses'
-    assert pub._pub.msg_type is MultiDOFJointTrajectory
+    advertised = {p.topic_name: p.msg_type for p in node.publishers}
+    assert advertised['/impedance/target_poses'] is MultiDOFJointTrajectory
 
 
 def test_multidof_times_use_the_preslice_index():
