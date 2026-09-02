@@ -172,5 +172,5 @@ so activation itself is quiet — but it is live from that moment.
 
 ## License
 
-MIT. See [LICENSE](LICENSE), which also carries the attribution for the control law
+MIT — see [LICENSE](LICENSE). [NOTICE](NOTICE) carries the attribution for the control law
 (serl_franka_controllers) and the reference generator (UMI).

@@ -19,19 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-
----
-
-THIRD-PARTY ATTRIBUTION
-
-The Cartesian impedance control law in
-`franka_streaming_impedance_controller/src/cartesian_impedance_law.cpp` is ported from
-serl_franka_controllers (https://github.com/rail-berkeley/serl_franka_controllers, MIT),
-itself derived from franka_ros's cartesian_impedance_example_controller. It is the same law
-polymetis runs (torchcontrol OperationalSpacePD), with an error clip and a nullspace term.
-
-The reference generator in
-`franka_streaming_impedance_controller/src/pose_trajectory_interpolator.cpp` is ported from
-UMI's PoseTrajectoryInterpolator (https://github.com/real-stanford/universal_manipulation_interface,
-MIT).
