@@ -6,6 +6,31 @@
 #include <cmath>
 #include <stdexcept>
 
+namespace {
+
+/// A monotone tangent for the knot between secant_prev (incoming) and secant_next (outgoing),
+/// per position axis: zero at a local extremum, otherwise sign-consistent with both secants and
+/// capped at the smaller of their magnitudes. This is what stops the Hermite spline overshooting
+/// past its own waypoints — in position, and in the peak speed between two knots.
+Eigen::Vector3d monotoneTangent(const Eigen::Vector3d& secant_prev,
+                                const Eigen::Vector3d& secant_next) {
+  Eigen::Vector3d out;
+  for (int i = 0; i < 3; ++i) {
+    const double a = secant_prev(i);
+    const double b = secant_next(i);
+    if (a * b <= 0.0) {
+      out(i) = 0.0;
+      continue;
+    }
+    const double avg = 0.5 * (a + b);
+    const double bound = std::min(std::abs(a), std::abs(b));
+    out(i) = std::copysign(std::min(std::abs(avg), bound), avg);
+  }
+  return out;
+}
+
+}  // namespace
+
 namespace franka_streaming_impedance {
 
 std::pair<double, double> poseDistance(const Pose& a, const Pose& b) {
@@ -13,7 +38,9 @@ std::pair<double, double> poseDistance(const Pose& a, const Pose& b) {
 }
 
 PoseTrajectoryInterpolator::PoseTrajectoryInterpolator(double time, const Pose& pose)
-    : times_{time}, poses_{pose} {}
+    : times_{time}, poses_{pose} {
+  computeVelocities();
+}
 
 PoseTrajectoryInterpolator::PoseTrajectoryInterpolator(std::vector<double> times,
                                                        std::vector<Pose> poses)
@@ -23,6 +50,31 @@ PoseTrajectoryInterpolator::PoseTrajectoryInterpolator(std::vector<double> times
   }
   if (!std::is_sorted(times_.begin(), times_.end())) {
     throw std::invalid_argument("PoseTrajectoryInterpolator: times must be non-decreasing");
+  }
+  computeVelocities();
+}
+
+void PoseTrajectoryInterpolator::computeVelocities() {
+  const std::size_t n = times_.size();
+  velocities_.assign(n, Eigen::Vector3d::Zero());
+  if (n < 2) {
+    return;
+  }
+
+  std::vector<Eigen::Vector3d> secants(n - 1, Eigen::Vector3d::Zero());
+  for (std::size_t i = 0; i + 1 < n; ++i) {
+    const double span = times_[i + 1] - times_[i];
+    if (span > 0.0) {
+      secants[i] = (poses_[i + 1].position - poses_[i].position) / span;
+    }
+  }
+
+  // Boundary knots have only one neighbor, so their tangent is that one chord's slope. For a
+  // bare two-waypoint trajectory this is both endpoints, and the spline below reduces to lerp.
+  velocities_.front() = secants.front();
+  velocities_.back() = secants.back();
+  for (std::size_t i = 1; i + 1 < n; ++i) {
+    velocities_[i] = monotoneTangent(secants[i - 1], secants[i]);
   }
 }
 
@@ -45,7 +97,19 @@ Pose PoseTrajectoryInterpolator::operator()(double t) const {
   const double alpha = (span > 0.0) ? (t - times_[lo]) / span : 1.0;
 
   Pose out;
-  out.position = poses_[lo].position + alpha * (poses_[hi].position - poses_[lo].position);
+  if (span > 0.0) {
+    // Cubic Hermite: matches both endpoint positions and velocities exactly, so the reference's
+    // velocity is continuous across this knot instead of jumping here (see computeVelocities()).
+    const double s = alpha;
+    const double h00 = 2.0 * s * s * s - 3.0 * s * s + 1.0;
+    const double h10 = s * s * s - 2.0 * s * s + s;
+    const double h01 = -2.0 * s * s * s + 3.0 * s * s;
+    const double h11 = s * s * s - s * s;
+    out.position = h00 * poses_[lo].position + (h10 * span) * velocities_[lo] +
+                   h01 * poses_[hi].position + (h11 * span) * velocities_[hi];
+  } else {
+    out.position = poses_[hi].position;
+  }
   out.orientation = poses_[lo].orientation.slerp(alpha, poses_[hi].orientation);
   return out;
 }

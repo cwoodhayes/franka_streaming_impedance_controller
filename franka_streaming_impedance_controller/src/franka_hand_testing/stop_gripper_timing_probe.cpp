@@ -1,4 +1,4 @@
-/// Franka Hand timing probe that pre-empts every Move with stop().
+// Franka Hand timing probe that pre-empts every Move with stop().
 //
 // Same free-running reader as csv_gripper_timing_probe, but every Move is cut short by
 // gripper.stop(), and the next Move goes out as soon as stop() returns. The question is whether

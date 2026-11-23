@@ -7,9 +7,9 @@ time_from_start``) that its interpolator splices on. Every producer builds it th
 ``TargetChunkPublisher``, which is also what keeps ``topic_name`` and ``get_subscription_count()``
 available for "nobody is listening" errors.
 
-Two fields the controller matches on, and rejects the chunk over:
+Two fields the controller matches on, and drops the chunk over:
 
-- ``header.frame_id`` must be the controller's ``base_frame``.
+- ``header.frame_id`` must be the controller's ``base_frame``, or empty to accept that default.
 - ``joint_names`` must be exactly ``[tcp_frame]`` — it names the commanded frame, not a joint.
 
 ``pose_array`` is the PREVIEW format, and moves nothing. A producer can publish every commanded

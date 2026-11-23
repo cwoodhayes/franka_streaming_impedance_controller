@@ -1,4 +1,4 @@
-/// Franka Hand probe: where does the commanded speed stop being honoured?
+// Franka Hand probe: where does the commanded speed stop being honoured?
 //
 // Commands speeds far past anything the hand can deliver (up to 800 mm/s) and reads the answer
 // off move()'s BLOCKING DURATION rather than the width trace. That matters: above ~150 mm/s a

@@ -1,4 +1,4 @@
-/// Franka Hand timing probe that sweeps Move speed.
+// Franka Hand timing probe that sweeps Move speed.
 //
 // Same free-running reader as csv_gripper_timing_probe, but the commanded speed changes every
 // trial and there is NO rest between moves -- each Move is issued the instant the previous one

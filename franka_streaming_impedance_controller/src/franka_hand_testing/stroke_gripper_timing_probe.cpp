@@ -1,4 +1,4 @@
-/// Franka Hand probe: sweep stroke LENGTH to pin down the acceleration.
+// Franka Hand probe: sweep stroke LENGTH to pin down the acceleration.
 //
 // The width field refreshes at ~5 Hz, so the acceleration ramp (tens of ms) is invisible in the
 // position trace and a_max cannot be fitted from it. move()'s blocking duration, however, is

@@ -38,10 +38,11 @@ stationary**. Every parameter and the reasoning behind the shipped gains lives i
 
 ## The wire contract
 
-`target_topic` takes `trajectory_msgs/MultiDOFJointTrajectory`. Three rules, each of which makes
-the controller reject a chunk rather than guess:
+`target_topic` takes `trajectory_msgs/MultiDOFJointTrajectory`. Three rules; the first two make
+the controller drop a chunk rather than guess at it:
 
-- **`header.frame_id` == the controller's `base_frame`.** Poses are commanded in the base frame.
+- **`header.frame_id` == the controller's `base_frame`**, or empty to mean "base frame assumed".
+  Poses are commanded in the base frame, and a chunk naming any *other* frame is dropped.
 - **`joint_names` == exactly `[tcp_frame]`.** It names the *commanded frame*, not a joint, so a
   chunk aimed elsewhere is not reinterpreted just because it landed on this topic.
 - **Waypoint times are absolute** (`header.stamp + time_from_start`). This is what makes splicing
@@ -68,7 +69,7 @@ completely silent. If you slice stale waypoints off the front of a chunk, keep n
 *unsliced* index (`first_index`) — renumbering the survivors from zero shifts the whole timeline
 earlier, which looks like tracking lag rather than a bug.
 
-## Two design notes
+## Three design notes
 
 **A custom `tcp_frame`** matters because a spring anchored somewhere other than the real contact
 point turns an orientation error into a large translation where it counts. Pose and Jacobian are
@@ -78,6 +79,12 @@ both moved onto it at activation with one TF lookup. (`SetTCPFrame` is not the l
 **Torque rather than `cartesian_pose`** because under that interface libfranka hardcodes
 `ControllerMode::kJointImpedance` — stiffness-only, no damping knob — and hardcodes its rate
 limiter and low-pass filter off, so nothing downstream catches a discontinuity either.
+
+**Position is a cubic Hermite spline, not lerp**, which is what makes "neither starts from rest nor
+stops at a chunk boundary" true of *velocity*. Each waypoint gets one shared slope between its incoming and outgoing segments, so the reference's velocity is continuous
+through interior waypoints and across splices. Tangents are clamped monotone, so the spline cannot
+locally outrun the average speed `max_pos_speed` already bounds — and that distance is what sets
+contact force. Orientation is still slerp, so its angular velocity still steps at each waypoint. Position is continous for both linear and orientation controllers. 
 
 ## `franka_hand_node`
 
@@ -89,10 +96,19 @@ run-to-completion structural: one thread calls `move()`, in a loop. It also hold
 gripper connection, which only one process may have, so run `franka_bringup` with
 `load_gripper:=false` and nothing else.
 
-**Know what it costs.** `blockedDuration(0)` is 363 ms, so the ceiling is 2.75 Hz and realistically
+**Know what it costs.** `blockedDuration(0, v)` is 363 ms, so the ceiling is 2.75 Hz and realistically
 0.7–1.7 Hz — against a 10 Hz setpoint stream this node is a **decimator**, servicing roughly every
 4th–15th setpoint. That is the hardware, not a bug. The `src/franka_hand_testing/` probes behind
-those numbers build with `-DBUILD_HAND_PROBES=ON`.
+those numbers build with `-DBUILD_HAND_PROBES=ON`. The binding constraint is the API — blocking
+and un-pre-emptable — rather than the motor.
+
+**It plans, it does not relay.** Setpoints land in a `WidthTrajectory` horizon, and `selectMove`
+picks the earliest one still reachable, at the slowest speed that arrives on time. When nothing is
+reachable it chases instead — full speed toward where the trajectory will be once the fingers get
+there — because stopping short at an intermediate width costs another whole `fixed_cost`. On a
+width plot that reads as aiming at the wrong target; it is not. All of it plans against
+`HandLimits`: five numbers fitted from one hand, `fixed_cost` alone drifting 50–70 ms between runs,
+every one a parameter — so re-run the probes and re-fit for your hand, not ours.
 
 ## Safety
 

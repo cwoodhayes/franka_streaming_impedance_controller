@@ -1,4 +1,14 @@
-/// minimal timing probe for Franka Hand
+// The baseline Franka Hand timing probe: 10 opens from rest (20 -> 70 mm at 50 mm/s), each timed
+// against the hand's own width stream. The other probes in this directory are variations on this
+// one, and their headers say so.
+//
+// Each Move goes out on a std::async so main can keep sampling width while it blocks -- move()
+// returns only once the motion has ENDED, so timing the call itself would measure the stroke
+// rather than the latency before it. Reports command -> first motion, move() blocked, motion
+// duration, motion stop -> return, the achieved read rate, and how fast the hand's clock runs
+// against the PC's. Trials with no state or no detected motion are discarded, not averaged in.
+//
+// Prints a summary; no CSV, unlike csv_gripper_timing_probe. MOVES THE FINGERS.
 
 #include <franka/exception.h>
 #include <franka/gripper.h>

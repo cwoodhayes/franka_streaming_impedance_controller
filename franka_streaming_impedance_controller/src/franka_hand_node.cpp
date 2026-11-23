@@ -11,7 +11,7 @@
 // action server it would be a convention instead, and franka_gripper accepts every goal into a
 // detached thread with no queue, so nothing would enforce it.
 //
-// WHAT IT COSTS. blockedDuration(0) = 363 ms, so the command ceiling is 2.75 Hz and realistically
+// WHAT IT COSTS. blockedDuration(0, v) = 363 ms, so the command ceiling is 2.75 Hz and realistically
 // 0.7-1.7 Hz. Against a 10 Hz setpoint stream this node is a DECIMATOR, servicing roughly every
 // 4th-15th setpoint. That is the hardware, not a bug; the README says what the hand cannot do.
 //

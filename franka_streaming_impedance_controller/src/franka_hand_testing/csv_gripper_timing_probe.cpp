@@ -1,4 +1,4 @@
-/// Franka Hand timing probe with a free-running reader thread.
+// Franka Hand timing probe with a free-running reader thread.
 //
 // Same experiment as simple_gripper_timing_probe -- 10 open/close trials, same widths and speed --
 // but one thread does nothing except readOnce() for the WHOLE session, not just while a Move is
